@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.mapper.SurveyMapper">
+
+	<!-- 설문 등록 -->
+	<insert id="insertSurvey"
+		parameterType="egovframework.vo.SurveyVO">
+		INSERT INTO SURVEY(
+		SURVEY_SERIAL, TITLE, SUMMARY,
+		USAGE_YN, START_DT,
+		END_DT, MEMBER_ID, EDIT_ID, CREATED_DT, UPDATED_DT
+		) VALUES (
+		#{surveySerial},
+		#{title}, #{summary}, #{usageYn},
+		#{startDt}, #{endDt}, #{memberId}, #{editId},
+		NOW(), NOW()
+		)
+	</insert>
+
+	<!-- 질문 등록 -->
+	<insert id="insertQuestion"
+		parameterType="egovframework.vo.QuestionVO">
+		INSERT INTO QUESTION (
+		QUESTION_SERIAL, SURVEY_SERIAL,
+		QUESTION_NO,
+		QUESTION_TEXT, QUESTION_TYPE, REQUIRED_YN,
+		IMAGE_FILE_PATH,
+		IMAGE_FILE_NAME, IMAGE_FILE_UUID, CREATED_DT,
+		UPDATED_DT
+		) VALUES (
+		#{questionSerial},
+		#{surveySerial}, #{questionNo},
+		#{questionText},
+		#{questionType},
+		#{requiredYn}, #{imageFilePath},
+		#{imageFileName},
+		#{imageFileUuid},
+		NOW(), NOW()
+		)
+	</insert>
+
+	<!-- 질문 옵션 등록 -->
+	<insert id="insertQuestionOption"
+		parameterType="egovframework.vo.QuestionOptionVO">
+		INSERT INTO QUESTION_OPTION (
+		OPTION_SERIAL,
+		SURVEY_SERIAL, QUESTION_SERIAL, OPTION_NO, OPTION_TEXT, CREATED_DT,
+		UPDATED_DT
+		) VALUES (
+		#{optionSerial},
+		#{surveySerial},
+		#{questionSerial}, #{optionNo},
+		#{optionText}, NOW(),
+		NOW()
+		)
+	</insert>
+
+	<!-- SURVEY_SERIAL 채번 -->
+	<select id="selectNextSurveySerial" resultType="int">
+		SELECT
+		COALESCE(MAX(SURVEY_SERIAL), 0) + 1 FROM SURVEY
+	</select>
+
+	<!-- QUESTION_SERIAL 채번 -->
+	<select id="selectNextQuestionSerial" resultType="int">
+		SELECT
+		COALESCE(MAX(QUESTION_SERIAL), 0) + 1 FROM QUESTION
+	</select>
+
+	<!-- QUESTION_OPTION_SERIAL 채번 -->
+	<select id="selectNextQuestionOptionSerial" resultType="int">
+		SELECT
+		COALESCE(MAX(OPTION_SERIAL), 0) + 1 FROM QUESTION_OPTION
+	</select>
+
+	<!-- 설문개수 가져오기 -->
+	<select id="getSurveyCount" resultType="int">
+		SELECT COUNT(*)
+		FROM SURVEY
+		WHERE 1=1
+    <if test="searchKeyword != null and searchKeyword != ''">
+        AND TITLE LIKE CONCAT('%', #{searchKeyword}, '%')
+    </if>
+	</select>
+
+	<!-- 설문 목록 가져오기 -->
+	<select id="getSurveyList"
+		resultType="egovframework.vo.SurveyVO">
+		SELECT *
+		FROM SURVEY
+		WHERE 1=1
+    <if test="searchKeyword != null and searchKeyword != ''">
+        AND TITLE LIKE CONCAT('%', #{searchKeyword}, '%')
+    </if>
+		ORDER BY CREATED_DT DESC
+		LIMIT #{limit} OFFSET #{offset}
+	</select>
+
+	<!-- 활성화된 설문조사의 총 개수 -->
+	<select id="getActiveSurveyCount" resultType="int">
+		SELECT COUNT(*)
+		FROM SURVEY
+		WHERE USAGE_YN = 'Y'
+		<if test="keyword != null and keyword != ''">
+			AND TITLE LIKE CONCAT('%', #{keyword}, '%')
+		</if>
+	</select>
+
+	<!-- 활성화된 설문조사 목록 -->
+	<select id="getActiveSurveys"
+		resultType="egovframework.vo.SurveyVO">
+		SELECT *
+		FROM SURVEY
+		WHERE USAGE_YN = 'Y'
+		<if test="keyword != null and keyword != ''">
+			AND TITLE LIKE CONCAT('%', #{keyword}, '%')
+		</if>
+		ORDER BY CREATED_DT DESC
+		LIMIT #{limit} OFFSET #{offset}
+	</select>
+
+	<!-- 설문 상세 정보 가져오기 -->
+	<select id="getSurveyBySerial"
+		resultType="egovframework.vo.SurveyVO">
+		SELECT *
+		FROM SURVEY
+		WHERE SURVEY_SERIAL = #{surveySerial}
+	</select>
+
+	<!-- 설문에 해당하는 질문 리스트 가져오기 -->
+	<select id="getQuestionsBySurveySerial"
+		resultType="egovframework.vo.QuestionVO">
+		SELECT *
+		FROM QUESTION
+		WHERE SURVEY_SERIAL = #{surveySerial}
+		ORDER BY QUESTION_NO
+	</select>
+
+	<!-- 질문에 해당하는 옵션 리스트 가져오기 -->
+	<select id="getOptionsByQuestionSerial"
+		resultType="egovframework.vo.QuestionOptionVO">
+		SELECT *
+		FROM QUESTION_OPTION
+		WHERE QUESTION_SERIAL =
+		#{questionSerial}
+		ORDER BY OPTION_NO
+	</select>
+
+	<!-- 질문 하나 가져오기 질문시리얼로 (이미지용) -->
+	<select id="getQuestionByQuestionSerial"
+		resultType="egovframework.vo.QuestionVO">
+		SELECT *
+		FROM QUESTION
+		WHERE QUESTION_SERIAL =
+		#{questionSerial}
+	</select>
+
+	<!-- 응답을 하나씩 저장 -->
+	<insert id="insertAnswer"
+		parameterType="egovframework.vo.AnswerVO">
+		INSERT INTO ANSWER (
+		ANSWER_SERIAL, MEMBER_SERIAL,
+		MEMBER_ID, SURVEY_SERIAL, SURVEY_TITLE,
+		QUESTION_SERIAL,
+		QUESTION_TEXT,
+		QUESTION_TYPE, OPTION_SERIAL, OPTION_TEXT, ANSWER_TEXT, CREATED_DT
+		)
+		VALUES (
+		(SELECT COALESCE(MAX(ANSWER_SERIAL), 0) + 1 FROM ANSWER),
+		#{memberSerial}, #{memberId}, #{surveySerial}, #{surveyTitle},
+		#{questionSerial},
+		#{questionText}, #{questionType},
+		#{optionSerial},
+		#{optionText}, #{answerText}, NOW()
+		)
+	</insert>
+
+	<!-- 통계조회 -->
+	<select id="getStatisticsBySurveySerial" resultType="map">
+		SELECT
+		a.QUESTION_SERIAL AS questionSerial,
+		a.QUESTION_TEXT AS
+		questionText,
+		a.QUESTION_TYPE AS questionType,
+		COALESCE(OPTION_TEXT, '')
+		AS optionText,
+		COUNT(*) AS responseCount,
+		(
+		SELECT COUNT(DISTINCT
+		sub.MEMBER_ID)
+		FROM ANSWER
+		AS sub
+		WHERE sub.SURVEY_SERIAL =
+		a.SURVEY_SERIAL
+		AND sub.QUESTION_SERIAL
+		= a.QUESTION_SERIAL
+		<if test="memberId != null">
+			AND sub.MEMBER_ID = #{memberId}
+		</if>
+		) AS totalResponses
+		FROM ANSWER AS a
+		WHERE a.SURVEY_SERIAL =
+		#{surveySerial}
+		<if test="memberId != null">
+			AND a.MEMBER_ID = #{memberId}
+		</if>
+		GROUP BY a.SURVEY_SERIAL, a.QUESTION_SERIAL, a.QUESTION_TEXT,
+		a.QUESTION_TYPE, a.OPTION_TEXT
+		ORDER BY a.QUESTION_SERIAL;
+	</select>
+
+	<!-- 설문제목 가져오기 -->
+	<select id="getSurveyTitle" resultType="string">
+		SELECT SURVEY_TITLE
+		FROM
+		ANSWER
+		WHERE SURVEY_SERIAL = #{surveySerial}
+		LIMIT 1
+	</select>
+
+	<!-- 주관식 답변 가져오기 -->
+	<select id="getTextResponsesByQuestionSerial"
+		resultType="string">
+		SELECT ANSWER_TEXT
+		FROM ANSWER
+		WHERE SURVEY_SERIAL =
+		#{surveySerial}
+		AND
+		QUESTION_SERIAL = #{questionSerial}
+		<if test="memberId != null and memberId != ''">
+			AND MEMBER_ID = #{memberId}
+		</if>
+		AND
+		QUESTION_TYPE IN ('SHORT', 'LONG');
+	</select>
+
+	<!-- 설문한 사람 가져오기 -->
+	<select id="getAllUsersForSurvey"
+		resultType="egovframework.vo.MemberVO">
+		SELECT DISTINCT
+		MEMBER_ID AS memberId
+		FROM ANSWER
+		WHERE
+		SURVEY_SERIAL = #{surveySerial}
+	</select>
+
+	<!-- 설문 참여자 존재여부 조회 -->
+	<select id="getResponseCountBySurveySerial" resultType="int">
+		SELECT
+		COUNT(*) FROM ANSWER WHERE SURVEY_SERIAL = #{surveySerial}
+	</select>
+
+	<!-- 설문조사 업데이트 -->
+	<update id="updateSurvey">
+		UPDATE SURVEY
+		SET TITLE = #{title},
+		SUMMARY = #{summary},
+		USAGE_YN = #{usageYn},
+		START_DT = #{startDt},
+		END_DT = #{endDt},
+		UPDATED_DT = NOW(),
+		EDIT_ID = #{editId}
+		WHERE SURVEY_SERIAL = #{surveySerial}
+	</update>
+
+	<!-- 설문에 속한 모든 질문 삭제 -->
+	<delete id="deleteQuestionsBySurveySerial">
+		DELETE FROM QUESTION WHERE SURVEY_SERIAL = #{surveySerial}
+	</delete>
+
+	<!-- 설문에 속한 모든 질문 옵션 삭제 -->
+	<delete id="deleteOptionsBySurveySerial">
+		DELETE FROM QUESTION_OPTION WHERE SURVEY_SERIAL = #{surveySerial}
+	</delete>
+
+	<!-- 설문 삭제 -->
+    <delete id="deleteSurvey" parameterType="int">
+        DELETE FROM SURVEY WHERE SURVEY_SERIAL = #{surveySerial}
+    </delete>
+	
+	<!-- 참여자 존재여부에 따른 업데이트 분기 -->
+	<!-- 참여자 있으면 업데이트 -->
+	<update id="updateSurveyLimitedFields">
+		UPDATE SURVEY
+		SET START_DT = #{startDt},
+		END_DT =
+		#{endDt},
+		USAGE_YN = #{usageYn}
+		WHERE SURVEY_SERIAL = #{surveySerial}
+	</update>
+	
+	<!-- 사용자별 설문참여여부 확인 -->
+	<select id="getParticipationCount" resultType="int">
+    SELECT COUNT(*)
+    FROM ANSWER
+    WHERE SURVEY_SERIAL = #{surveySerial}
+      AND MEMBER_SERIAL = #{memberSerial}
+</select>
+	
+</mapper>

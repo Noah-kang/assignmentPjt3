@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="egovframework.mapper.MemberMapper">
+	
+	<!-- pk 구하기 -->
+	<select id="selectNextMemberSerial" resultType="int">
+		SELECT COALESCE(MAX(member_serial), 0) + 1
+		FROM member
+	</select>
+	
+	<!-- 아이디 존재 여부 -->
+	<select id="isMemberIdExists" parameterType="string" resultType="boolean">
+		SELECT EXISTS (
+			SELECT 1 FROM member
+			WHERE member_id = #{memberId}
+		)
+	</select>
+
+	<!-- 회원 가입 -->
+    <insert id="insertMember" parameterType="egovframework.vo.MemberVO">
+        INSERT INTO member (
+            member_serial,
+            member_id,
+            password,
+            name,
+            member_level,
+            created_dt,
+            updated_dt
+        ) VALUES (
+            #{memberSerial},  
+            #{memberId},
+            #{password},
+            #{name},
+            'USER', -- 가입 시 기본 USER
+            NOW(),
+            NOW()
+        )
+    </insert>
+    
+    <!-- 아이디로 회원 조회 -->
+    <select id="getMemberByMemberId" parameterType="string" resultType="egovframework.vo.MemberVO">
+        SELECT 
+            member_serial  AS memberSerial,
+            member_id      AS memberId,
+            password,
+            name,
+            member_level   AS memberLevel,
+            to_char(created_dt, 'YYYY-MM-DD HH24:MI:SS') AS createdDt,
+            to_char(updated_dt, 'YYYY-MM-DD HH24:MI:SS') AS updatedDt
+        FROM member
+        WHERE member_id = #{memberId}
+    </select>
+
+</mapper>
